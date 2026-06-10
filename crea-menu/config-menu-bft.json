@@ -1,0 +1,41 @@
+{
+    "logo": {
+        "file": "asset/logo.svg",
+        "fallbackText": "BFT Menu"
+    },
+    "output": {
+        "directory": "output",
+        "htmlDebug": true
+    },
+    "texts": {
+        "weekTitle": "MENÙ BFT",
+        "sections": {
+            "primi": "Primi Piatti",
+            "secondi": "Secondi",
+            "piatti_healthy": "Piatti Healthy"
+        },
+        "alwaysAvailableTitle": "Piatti sempre disponibili"
+    },
+    "alwaysAvailable": [
+        "Pasta al pomodoro",
+        "Pasta in bianco (specificare se al burro o all’olio)"
+    ],
+    "serviceCard": {
+        "title": "LISTINO PREZZI",
+        "prices": [
+            "Primo, acqua e coperto € 8,00",
+            "Primo abbondante, acqua e coperto € 9,00",
+            "Piatto healthy, acqua e coperto € 11,50",
+            "Secondo, acqua e coperto € 10,00"
+        ]
+    },
+    "colors": {
+        "background": "#ffffff",
+        "text": "#000000",
+        "cta_bg": "#000000",
+        "cta_text": "#ffffff",
+        "section_border": "rgba(0,0,0,0.08)",
+        "footer_border": "rgba(0,0,0,0.08)",
+        "font": "'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', sans-serif"
+    }
+}

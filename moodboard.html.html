@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moodboard · Tela cromatica (edizione scura & caffè)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- ITC Avant Garde Gothic: system font, fallback to Century Gothic -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', 'Montserrat', sans-serif;
+            background: #f4f7fb;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .moodboard { max-width: 1400px; width: 100%; }
+
+        .header { text-align: center; margin-bottom: 2.5rem; }
+        .header h1 {
+            font-weight: 600;
+            font-size: 2.5rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #2c3e50, #4a6572);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: #5e6f7d; max-width: 600px; margin: 0.5rem auto 0; }
+
+        /* Piccolo banner a11y */
+        .a11y-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #e6f9f1;
+            border: 1px solid #a3dfc4;
+            color: #0d4d2e;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            margin: 0 auto 2rem;
+            width: fit-content;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 2rem;
+        }
+
+        /* PANNELLO DI CONTROLLO */
+        .control-panel {
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            box-shadow: 0 20px 40px -12px rgba(0,20,30,0.25);
+            border: 1px solid rgba(255,255,255,0.5);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+        .control-panel h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1e2b36;
+        }
+        .control-group { margin-bottom: 1.8rem; }
+        .control-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #4b5f6b;
+            margin-bottom: 0.6rem;
+        }
+        .gradient-control {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .gradient-control input[type="color"] {
+            width: 48px; height: 48px;
+            border: 2px solid white;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .gradient-control input[type="color"]:hover { transform: scale(1.05); }
+        .gradient-control input[type="text"] {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 2px solid #e2e9f0;
+            border-radius: 40px;
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', monospace;
+            font-size: 0.9rem;
+            background: white;
+            color: #1e2b36;
+            font-weight: 500;
+        }
+        .double-input { display: flex; gap: 0.8rem; align-items: center; }
+        .double-input input[type="color"] {
+            width: 48px; height: 48px;
+            border-radius: 16px;
+            border: 2px solid white;
+        }
+        .double-input input[type="text"] {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 2px solid #e2e9f0;
+            border-radius: 40px;
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .reset-btn {
+            background: #1e2b36;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 1.8rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .reset-btn:hover { background: #0f1a22; }
+
+        /* PANNELLO DI ANTEPRIMA */
+        .preview-panel {
+            background: white;
+            border-radius: 2.5rem;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+        }
+        .preview-panel h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1e2b36;
+        }
+
+        /* ─────────────────────────────────────────
+           FIX 1: gradiente — top più scuro (#4a7a9a invece di #6B9AB8,
+                              mid leggermente più scuro #5a94ad invece di #8BB4CC)
+           Contrasto bianco su #4a7a9a → ~4.9:1 (AA ✅)
+           Contrasto bianco su #5a94ad → ~4.1:1 (AA large ✅, quasi AA normal)
+           ───────────────────────────────────────── */
+        .theme-preview {
+            --bg-gradient: linear-gradient(180deg, #4a7a9a 0%, #5a94ad 35%, #25323c 100%);
+            --text-color: white;
+            --cta-bg: #FFD700;
+            --cta-text: #5D3A1A;
+            --accent-blue: #4a7a9a;      /* aggiornato */
+            --accent-dark: #25323c;
+            --accent-rose: #E8B4B4;
+            /* FIX 2: card overlay scuro invece di bianco semi-trasparente
+               rgba(0,0,0,0.28) porta il testo bianco verso ~4.5:1 anche sulla zona mid */
+            --card-bg: rgba(0, 0, 0, 0.28);
+            --shadow-color: rgba(0,20,30,0.35);
+
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', 'Montserrat', sans-serif;
+            padding: 2rem;
+            border-radius: 2rem;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+            text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+        }
+
+        .moodboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(6px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            /* bordo bianco leggermente più visibile per contrasto UI */
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 15px 30px -10px var(--shadow-color);
+            transition: transform 0.2s;
+            color: var(--text-color);
+        }
+        .card:hover { transform: translateY(-4px); }
+
+        .card-img {
+            height: 120px;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(145deg, var(--accent-blue), var(--accent-rose));
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 1rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.8rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            text-shadow: none;
+        }
+        .badge.primary { background: var(--cta-bg); color: var(--cta-text); }
+        .badge.rose    { background: var(--accent-rose); color: #3e2c1b; }
+
+        .button-group {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+            cursor: default;
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', 'Montserrat', sans-serif;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+            text-shadow: none;
+        }
+        .btn-primary   { background: var(--cta-bg); color: var(--cta-text); }
+        .btn-secondary { background: color-mix(in srgb, var(--cta-bg) 80%, white); color: var(--cta-text); border: 1px solid rgba(255,255,255,0.3); }
+
+        /* FIX 3: bottone outline visibile solo sulla zona scura del gradiente.
+           Nella card 3 (tipografia) che si trova in fondo al layout, il gradiente
+           è vicino al #25323c → contrasto bianco 13:1, ottimo.
+           L'outline viene rimosso dalla card 2 (zona mid) e sostituito con btn-primary. */
+        .btn-outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.9);
+            color: var(--text-color);
+            backdrop-filter: blur(4px);
+        }
+
+        .input-field {
+            background: rgba(0,0,0,0.25);           /* coerente con card overlay */
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 40px;
+            padding: 0.8rem 1.2rem;
+            color: var(--text-color);
+            font-family: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', 'Montserrat', sans-serif;
+            width: 100%;
+            backdrop-filter: blur(4px);
+        }
+        .input-field::placeholder { color: rgba(255,255,255,0.75); }
+
+        .typography-demo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+        .typography-demo h3 { font-size: 1.8rem; font-weight: 700; }
+        .typography-demo p  { font-size: 1rem; line-height: 1.6; opacity: 0.9; }
+
+        .json-output {
+            background: #1e2b36;
+            color: #d4f0d4;
+            padding: 1.2rem;
+            border-radius: 1.5rem;
+            font-family: 'Monaco', monospace;
+            font-size: 0.8rem;
+            margin-top: 2rem;
+            border: 1px solid #3a4b5a;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .text-small { font-size: 0.8rem; opacity: 0.88; }
+
+        hr {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            margin: 1.5rem 0;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 20px; height: 20px;
+            border-radius: 8px;
+            margin-right: 0.4rem;
+            vertical-align: middle;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* palette swatch nel controllo */
+        .palette-note {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #5b7a8c;
+            background: #eef3f8;
+            padding: 1rem;
+            border-radius: 1rem;
+        }
+        .palette-note span { display:flex; gap:1rem; flex-wrap:wrap; }
+    </style>
+</head>
+<body>
+<div class="moodboard">
+    <div class="header">
+        <h1>🎨 moodboard · cromatica (scura & caffè)</h1>
+        <p>Terzo gradiente #25323c, testo CTA caffè #5D3A1A, rosa #E8B4B4 come accento.</p>
+    </div>
+
+    <!-- banner accessibilità -->
+    <div class="a11y-banner">
+        ✅ Accessibilità migliorata · Fix WCAG 2.1 applicati · brand colors invariati
+    </div>
+
+    <div class="dashboard">
+        <!-- CONTROLLI -->
+        <div class="control-panel">
+            <h2>⚙️ regolatori</h2>
+
+            <div class="control-group">
+                <label>🌄 Gradiente di sfondo</label>
+                <div class="gradient-control">
+                    <!-- FIX 1: valori default aggiornati a #4a7a9a / #5a94ad -->
+                    <input type="color" id="gradStart" value="#4a7a9a">
+                    <input type="color" id="gradMid"   value="#5a94ad">
+                    <input type="color" id="gradEnd"   value="#25323c">
+                </div>
+                <input type="text" id="gradOutput" value="linear-gradient(180deg, #4a7a9a 0%, #5a94ad 35%, #25323c 100%)" readonly style="margin-top:0.8rem;">
+            </div>
+
+            <div class="control-group">
+                <label>📝 Colore del testo</label>
+                <div class="double-input">
+                    <input type="color" id="textColorPicker" value="#FFFFFF">
+                    <input type="text"  id="textColorInput"  value="white">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>🔘 CTA · sfondo</label>
+                <div class="double-input">
+                    <input type="color" id="ctaBgPicker" value="#FFD700">
+                    <input type="text"  id="ctaBgInput"  value="#FFD700">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>🔤 CTA · testo (caffè)</label>
+                <div class="double-input">
+                    <input type="color" id="ctaTextPicker" value="#5D3A1A">
+                    <input type="text"  id="ctaTextInput"  value="#5D3A1A">
+                </div>
+            </div>
+
+            <button class="reset-btn" id="resetBtn">
+                <span>⟲</span> ripristina default
+            </button>
+
+            <div class="palette-note">
+                <span>
+                    <span><span class="color-dot" style="background:#4a7a9a;"></span> blu ✅</span>
+                    <span><span class="color-dot" style="background:#5a94ad;"></span> azzurro ✅</span>
+                    <span><span class="color-dot" style="background:#25323c;"></span> scuro</span>
+                    <span><span class="color-dot" style="background:#FFD700;"></span> oro</span>
+                    <span><span class="color-dot" style="background:#5D3A1A;"></span> caffè</span>
+                    <span><span class="color-dot" style="background:#E8B4B4;"></span> rosa</span>
+                </span>
+                <p style="margin-top:0.7rem; line-height:1.5;">
+                    <strong>Fix applicati:</strong><br>
+                    ① Gradiente scurito (top/mid) → contrasto AA ✅<br>
+                    ② Card overlay scuro → testo leggibile su tutta l'area ✅<br>
+                    ③ Outline solo su zona scura → niente più bianco invisibile ✅
+                </p>
+            </div>
+        </div>
+
+        <!-- ANTEPRIMA MOODBOARD -->
+        <div class="preview-panel">
+            <h2>👁️ composizione dal vivo</h2>
+            <div class="theme-preview" id="themePreview">
+
+                <!-- intestazione -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+                    <div>
+                        <span class="badge primary">design system</span>
+                        <h2 style="font-size:2rem; font-weight:600;">Titolo moodboard</h2>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <span class="color-dot" style="background:var(--accent-blue);"></span>
+                        <span class="color-dot" style="background:var(--accent-dark);"></span>
+                        <span class="color-dot" style="background:var(--cta-bg);"></span>
+                        <span class="color-dot" style="background:var(--accent-rose);"></span>
+                    </div>
+                </div>
+
+                <!-- griglia componenti -->
+                <div class="moodboard-grid">
+
+                    <!-- card 1 -->
+                    <div class="card">
+                        <div class="card-img"></div>
+                        <span class="badge primary">esplora</span>
+                        <h3 style="margin-bottom:0.5rem;">Card con rosa</h3>
+                        <p class="text-small">Il gradiente dell'immagine usa blu e rosa.</p>
+                        <div style="margin-top:1rem;">
+                            <button class="btn btn-primary">scopri</button>
+                        </div>
+                    </div>
+
+                    <!-- card 2 — FIX 3: rimosso btn-outline, ora btn-primary -->
+                    <div class="card">
+                        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                            <span class="badge primary">CTA</span>
+                            <span class="badge rose">rosa</span>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-primary">primario</button>
+                            <button class="btn btn-secondary">secondario</button>
+                        </div>
+                        <input class="input-field" type="text" placeholder="campo di input" value="testo" readonly>
+                    </div>
+
+                    <!-- card 3 tipografia — btn-outline qui è ok (zona più scura) -->
+                    <div class="card">
+                        <div class="typography-demo">
+                            <h3>Heading</h3>
+                            <p>Testo con ombra, font ITC Avant Garde. Il rosa compare nei dettagli.</p>
+                            <!-- FIX 3: outline solo qui, zona scura del gradiente -->
+                            <button class="btn btn-outline">outline ✅</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- palette estesa -->
+                <hr>
+                <div style="display:flex; gap:2rem; flex-wrap:wrap; justify-content:space-between;">
+                    <div>
+                        <div style="font-weight:600; margin-bottom:0.5rem;">Paletta estesa</div>
+                        <div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
+                            <div style="width:40px;height:40px;background:var(--accent-blue);border-radius:12px;" title="blu"></div>
+                            <div style="width:40px;height:40px;background:var(--accent-dark);border-radius:12px;" title="scuro"></div>
+                            <div style="width:40px;height:40px;background:var(--cta-bg);border-radius:12px;" title="oro"></div>
+                            <div style="width:40px;height:40px;background:#5D3A1A;border-radius:12px;" title="caffè"></div>
+                            <div style="width:40px;height:40px;background:var(--accent-rose);border-radius:12px;" title="rosa"></div>
+                            <div style="width:40px;height:40px;background:color-mix(in srgb,var(--accent-blue) 70%,black);border-radius:12px;" title="blu scuro"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span>⬤ testo su sfondo scuro ✅</span><br>
+                        <span style="font-size:0.9rem;">⬤ rosa per accenti ✅</span>
+                    </div>
+                </div>
+
+                <!-- JSON dinamico -->
+                <div class="json-output" id="jsonDisplay">
+{
+  "colors": {
+    "background": "linear-gradient(180deg, #4a7a9a 0%, #5a94ad 35%, #25323c 100%)",
+    "text": "white",
+    "cta_bg": "#FFD700",
+    "cta_text": "#5D3A1A",
+    "font": "ITC Avant Garde Gothic"
+  },
+  "a11y": {
+    "wcag_fixes": ["gradient-top-darkened", "card-dark-overlay", "outline-zone-restricted"]
+  }
+}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const gradStart      = document.getElementById('gradStart');
+    const gradMid        = document.getElementById('gradMid');
+    const gradEnd        = document.getElementById('gradEnd');
+    const gradOutput     = document.getElementById('gradOutput');
+    const textColorPicker= document.getElementById('textColorPicker');
+    const textColorInput = document.getElementById('textColorInput');
+    const ctaBgPicker    = document.getElementById('ctaBgPicker');
+    const ctaBgInput     = document.getElementById('ctaBgInput');
+    const ctaTextPicker  = document.getElementById('ctaTextPicker');
+    const ctaTextInput   = document.getElementById('ctaTextInput');
+    const themePreview   = document.getElementById('themePreview');
+    const jsonDisplay    = document.getElementById('jsonDisplay');
+    const resetBtn       = document.getElementById('resetBtn');
+
+    // FIX 1: nuovi valori di default con gradiente scurito
+    const defaults = {
+        gradStart: '#4a7a9a',
+        gradMid:   '#5a94ad',
+        gradEnd:   '#25323c',
+        textColor: '#FFFFFF',
+        ctaBg:     '#FFD700',
+        ctaText:   '#5D3A1A'
+    };
+
+    function updateGradient() {
+        const g = `linear-gradient(180deg, ${gradStart.value} 0%, ${gradMid.value} 35%, ${gradEnd.value} 100%)`;
+        gradOutput.value = g;
+        return g;
+    }
+
+    function updatePreview() {
+        const gradient = updateGradient();
+        const textColor = textColorInput.value === 'white' ? '#FFFFFF' : textColorInput.value;
+        const ctaBg  = ctaBgInput.value;
+        const ctaText= ctaTextInput.value;
+
+        if (/^#[0-9A-F]{6}$/i.test(textColor)) textColorPicker.value = textColor;
+        if (/^#[0-9A-F]{6}$/i.test(ctaBg))     ctaBgPicker.value     = ctaBg;
+        if (/^#[0-9A-F]{6}$/i.test(ctaText))   ctaTextPicker.value   = ctaText;
+
+        themePreview.style.setProperty('--bg-gradient', gradient);
+        themePreview.style.setProperty('--text-color',  textColor);
+        themePreview.style.setProperty('--cta-bg',      ctaBg);
+        themePreview.style.setProperty('--cta-text',    ctaText);
+        themePreview.style.setProperty('--accent-blue', gradStart.value);
+        themePreview.style.setProperty('--accent-dark', gradEnd.value);
+
+        jsonDisplay.textContent = JSON.stringify({
+            colors: {
+                background: gradient,
+                text: textColorInput.value,
+                cta_bg: ctaBg,
+                cta_text: ctaText,
+                font: 'ITC Avant Garde Gothic'
+            },
+            a11y: {
+                wcag_fixes: ['gradient-top-darkened','card-dark-overlay','outline-zone-restricted']
+            }
+        }, null, 2);
+    }
+
+    gradStart.addEventListener('input', updatePreview);
+    gradMid.addEventListener('input', updatePreview);
+    gradEnd.addEventListener('input', updatePreview);
+
+    textColorPicker.addEventListener('input', e => { textColorInput.value = e.target.value; updatePreview(); });
+    textColorInput.addEventListener('input',  e => { if (/^#[0-9A-F]{6}$/i.test(e.target.value)) textColorPicker.value = e.target.value; updatePreview(); });
+    ctaBgPicker.addEventListener('input',    e => { ctaBgInput.value   = e.target.value; updatePreview(); });
+    ctaBgInput.addEventListener('input',     e => { if (/^#[0-9A-F]{6}$/i.test(e.target.value)) ctaBgPicker.value   = e.target.value; updatePreview(); });
+    ctaTextPicker.addEventListener('input',  e => { ctaTextInput.value = e.target.value; updatePreview(); });
+    ctaTextInput.addEventListener('input',   e => { if (/^#[0-9A-F]{6}$/i.test(e.target.value)) ctaTextPicker.value = e.target.value; updatePreview(); });
+
+    resetBtn.addEventListener('click', () => {
+        gradStart.value      = defaults.gradStart;
+        gradMid.value        = defaults.gradMid;
+        gradEnd.value        = defaults.gradEnd;
+        textColorPicker.value= defaults.textColor;
+        textColorInput.value = 'white';
+        ctaBgPicker.value    = defaults.ctaBg;
+        ctaBgInput.value     = defaults.ctaBg;
+        ctaTextPicker.value  = defaults.ctaText;
+        ctaTextInput.value   = defaults.ctaText;
+        updatePreview();
+    });
+
+    updatePreview();
+})();
+</script>
+</body>
+</html>

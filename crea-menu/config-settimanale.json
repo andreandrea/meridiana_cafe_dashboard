@@ -1,0 +1,41 @@
+{
+  "logo": {
+    "file": "asset/logo.svg",
+    "fallbackText": "MeridianaCafè"
+  },
+  "output": {
+    "directory": "output",
+    "htmlDebug": true
+  },
+  "texts": {
+    "weekTitle": "MENÙ DELLA SETTIMANA",
+    "sections": {
+      "primi": "Primi Piatti",
+      "secondi": "Secondi",
+      "zuppe": "Zuppa",
+      "insalate": "Insalate"
+    }
+  },
+  "serviceCard": {
+    "title": "INFORMAZIONI",
+    "hours": "Cucina aperta\n12:00–14:00\nLun–Ven",
+    "prices": {
+      "primi": "€8",
+      "secondi": "€10",
+      "zuppe": "€10",
+      "insalate": "€10"
+    },
+    "whatsapp": {
+      "number": "351 723 5371",
+      "qrCode": "asset/whatsapp-qr-code.png"
+    },
+    "pricesLabel": "PREZZI"
+  },
+  "colors": {
+    "background": "linear-gradient(180deg, #6B9AB8 0%, #8BB4CC 35%, #E8D5C4 100%)",
+    "text": "white",
+    "cta_bg": "#FFD700",
+    "cta_text": "#333",
+    "font": "'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', sans-serif"
+  }
+}

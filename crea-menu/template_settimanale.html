@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{BRAND_NAME}} - {{WEEK_LABEL}}</title>
+    <style>
+        :root {
+            /* Injected from Config */
+            __CSS_VARIABLES__
+            /* Static Layout Variables */
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --row-even-bg: rgba(255, 255, 255, 0.05);
+            --header-bg: rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--main-font);
+            background: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page-container {
+            width: 210mm;
+            height: 297mm;
+            background: var(--background);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+
+        .brand-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            text-transform: uppercase;
+        }
+
+        .date-section {
+            text-align: right;
+        }
+
+        .week-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        .date-range {
+            font-size: 18px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Menu Grid */
+        .menu-grid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .grid-header {
+            display: grid;
+            grid-template-columns: 100px 1.2fr 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        .col-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Day Rows */
+        .day-row {
+            display: grid;
+            grid-template-columns: 100px 1.2fr 1fr 1fr;
+            gap: 10px;
+            padding: 12px 10px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            align-items: center;
+        }
+
+        /* Alternating row style for better readability */
+        .day-row:nth-child(even) {
+            background: var(--row-even-bg);
+        }
+
+        .day-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding-right: 10px;
+            height: 100%;
+        }
+
+        .day-name {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .day-date {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        .course-col {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .course-col ul {
+            list-style: none;
+        }
+
+        .course-col li {
+            position: relative;
+            padding-left: 12px;
+            margin-bottom: 4px;
+        }
+
+        .course-col li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--cta-bg);
+            font-weight: bold;
+        }
+
+        /* Footer / Info */
+        footer {
+            margin-top: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .info-icon {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+
+        .info-content h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .info-text {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .price-list {
+            display: flex;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .price-item span {
+            font-weight: 400;
+            margin-left: 2px;
+        }
+
+        /* QR Code Specifics */
+        .qr-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+
+        .qr-box {
+            background: #fff;
+            padding: 5px;
+            border-radius: 8px;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-box img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .cta-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--cta-bg) 0%, #FFA500 100%);
+            color: var(--cta-text);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 2px;
+        }
+
+        .cta-sub {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page-container">
+        <div class="content-wrapper">
+            <header>
+                <div class="brand-section">
+                    <!-- LOGO PLACEHOLDER -->
+                    <img src="{{LOGO_SRC}}" alt="Logo" class="logo">
+                    <div class="brand-name">{{BRAND_NAME}}</div>
+                </div>
+                <div class="date-section">
+                    <div class="week-label">{{WEEK_LABEL}}</div>
+                    <div class="date-range">{{DATE_RANGE}}</div>
+                </div>
+            </header>
+
+            <div class="menu-grid">
+                <div class="grid-header">
+                    <div class="col-title">{{COL_1}}</div>
+                    <div class="col-title">{{COL_2}}</div>
+                    <div class="col-title">{{COL_3}}</div>
+                    <div class="col-title">{{COL_4}}</div>
+                </div>
+
+                <!-- Generated Rows Inject Here -->
+                {{DAYS_CONTENT}}
+
+            </div>
+
+            <footer>
+                <div class="info-card">
+                    <div class="info-icon">🕒</div>
+                    <div class="info-content">
+                        <h3>{{HOURS_TITLE}}</h3>
+                        <div class="info-text">
+                            {{HOURS_TEXT}}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card" style="justify-content: space-between;">
+                    <div class="info-content">
+                        <h3>{{PRICES_TITLE}}</h3>
+                        <div class="info-text price-list">
+                            {{PRICE_LIST}}
+                        </div>
+                    </div>
+
+                    <div class="qr-section">
+                        <div class="cta-text">
+                            <div class="cta-button">{{CTA_BUTTON}}</div>
+                            <div class="cta-sub">{{CTA_SUB}}</div>
+                        </div>
+                        <div class="qr-box">
+                            <!-- QR Code injected here -->
+                            <img src="{{QR_CODE}}" alt="QR">
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+</body>
+
+</html>

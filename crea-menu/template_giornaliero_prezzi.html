@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menù MeridianaCafè - Prezzi</title>
+    <style>
+        /* CSS Variables - verranno popolate dinamicamente dalla configurazione */
+        :root {
+            --logo-width: 85px;
+            --logo-height: 85px;
+            --logo-margin-bottom: 8px;
+            --menu-width: 405px;
+            --menu-height: 720px;
+            --menu-padding: 20px 18px;
+            --menu-border-radius: 12px;
+            --background: linear-gradient(135deg, #6B9AB8 0%, #8BB4CC 50%, #E8D5C4 100%);
+            --text-color: white;
+            --cta-bg: #FFD700;
+            --cta-text: #333;
+            --section-border: rgba(255, 255, 255, 0.4);
+            --footer-border: rgba(255, 255, 255, 0.3);
+            --main-font: 'ITC Avant Garde Gothic Std', 'Century Gothic', 'Avant Garde', sans-serif;
+            --subtitle-font-size: 12px;
+            --subtitle-letter-spacing: 3px;
+            --subtitle-font-weight: 600;
+            --date-font-size: 16px;
+            --date-font-weight: 600;
+            --hours-font-size: 11px;
+            --hours-font-style: italic;
+            --section-title-font-size: 13px;
+            --section-title-font-weight: 700;
+            --section-title-letter-spacing: 1.5px;
+            --section-title-text-transform: uppercase;
+            --dish-item-font-size: 11px;
+            --dish-item-line-height: 1.4;
+            --dish-item-font-weight: 400;
+            --price-font-size: 11px;
+            --price-font-weight: 600;
+            --cta-font-size: 12px;
+            --cta-font-weight: 700;
+            --cta-letter-spacing: 1px;
+            --header-margin-bottom: 18px;
+            --date-margin: 12px 0 8px 0;
+            --hours-margin-bottom: 20px;
+            --section-margin-bottom: 14px;
+            --section-title-margin-bottom: 8px;
+            --dish-item-margin-bottom: 5px;
+            --footer-padding-top: 14px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--main-font);
+            background: #f5f5f5;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .menu-preview {
+            width: var(--menu-width);
+            min-height: var(--menu-height);
+            background: var(--background);
+            border-radius: var(--menu-border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .menu-content {
+            width: 100%;
+            min-height: 100%;
+            padding: var(--menu-padding);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            font-family: var(--main-font);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: var(--header-margin-bottom);
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: var(--logo-margin-bottom);
+        }
+
+        .logo-container svg {
+            width: var(--logo-width);
+            height: var(--logo-height);
+            max-width: var(--logo-width);
+            max-height: var(--logo-height);
+            filter: brightness(0) invert(1);
+        }
+
+        .logo-placeholder {
+            width: var(--logo-width);
+            height: var(--logo-height);
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .subtitle {
+            font-size: var(--subtitle-font-size);
+            letter-spacing: var(--subtitle-letter-spacing);
+            opacity: 0.95;
+            font-weight: var(--subtitle-font-weight);
+            font-family: var(--main-font);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .date {
+            font-size: var(--date-font-size);
+            margin: var(--date-margin);
+            text-align: center;
+            font-weight: var(--date-font-weight);
+            opacity: 1;
+            font-family: var(--main-font);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .hours {
+            text-align: center;
+            font-size: var(--hours-font-size);
+            margin-bottom: var(--hours-margin-bottom);
+            opacity: 0.9;
+            font-style: var(--hours-font-style);
+            font-family: var(--main-font);
+            display: inline-block;
+            margin-left: auto;
+            margin-right: auto;
+            width: fit-content;
+        }
+
+        .hours-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: var(--hours-margin-bottom);
+        }
+
+        .section {
+            margin-bottom: var(--section-margin-bottom);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: var(--section-title-margin-bottom);
+        }
+
+        .section-title {
+            font-size: var(--section-title-font-size);
+            font-weight: var(--section-title-font-weight);
+            text-transform: var(--section-title-text-transform);
+            letter-spacing: var(--section-title-letter-spacing);
+            font-family: var(--main-font);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-price {
+            font-size: var(--price-font-size);
+            font-weight: var(--price-font-weight);
+            background: rgba(255, 255, 255, 0.15);
+            padding: 2px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .dish-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .dish-item {
+            font-size: var(--dish-item-font-size);
+            line-height: var(--dish-item-line-height);
+            margin-bottom: var(--dish-item-margin-bottom);
+            padding: 4px 0 4px 16px;
+            position: relative;
+            font-weight: var(--dish-item-font-weight);
+            font-family: var(--main-font);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-left: 4px;
+            margin-right: 4px;
+            color: var(--text-color);
+        }
+
+        .dish-item::before {
+            content: "•";
+            position: absolute;
+            left: 6px;
+            color: #FFD700;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .dish-text {
+            display: inline-block;
+        }
+
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            padding-top: var(--footer-padding-top);
+        }
+
+        .whatsapp-cta {
+            background: linear-gradient(135deg, var(--cta-bg) 0%, #FFA500 100%);
+            color: var(--cta-text);
+            padding: 10px 20px;
+            display: inline-block;
+            font-weight: var(--cta-font-weight);
+            font-size: var(--cta-font-size);
+            letter-spacing: var(--cta-letter-spacing);
+            margin-top: 8px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            font-family: var(--main-font);
+            text-transform: uppercase;
+        }
+
+        /* Riepilogo prezzi in fondo */
+        .price-summary {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .price-summary-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            opacity: 0.9;
+        }
+
+        .price-summary-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            font-size: 10px;
+            opacity: 0.9;
+        }
+
+        .price-summary-item {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="menu-preview">
+        <div class="menu-content">
+            <div class="header">
+                <div class="logo-container">
+                    <div class="logo-placeholder">LOGO</div>
+                </div>
+            </div>
+
+            <div class="date">[DATA]</div>
+            <div class="hours-wrapper">
+                <div class="hours">[HOURS]</div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">[SECTION_PRIMI]</div>
+                    <div class="section-price">[PRICE_PRIMO]</div>
+                </div>
+                <!-- PRIMI_PIATTI_PLACEHOLDER -->
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">[SECTION_SECONDI]</div>
+                    <div class="section-price">[PRICE_SECONDO]</div>
+                </div>
+                <!-- SECONDI_PIATTI_PLACEHOLDER -->
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">[SECTION_PIATTI_HEALTHY]</div>
+                    <div class="section-price">[PRICE_PIATTO_HEALTHY]</div>
+                </div>
+                <!-- PIATTO_HEALTHY_PLACEHOLDER -->
+            </div>
+
+            <div class="price-summary">
+                <div class="price-summary-title">Acqua e coperto inclusi</div>
+                <div class="price-summary-list">
+                    <!-- PRICE_SUMMARY_PLACEHOLDER -->
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="whatsapp-cta">[CTA]</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Analisi Menu Completa</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 10px; shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .upload-section { border: 2px dashed #007bff; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 10px; background: #eef6ff; cursor: pointer; }
+        .section { margin-bottom: 40px; padding: 20px; border-top: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        th { background: #007bff; color: white; position: sticky; top: 0; }
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        canvas { max-width: 100%; }
+        h2 { color: #007bff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📋 Analisi Professionale Menu</h1>
+
+    <div class="upload-section" onclick="document.getElementById('csvFile').click()">
+        <strong>Carica qui il file CSV</strong>
+        <input type="file" id="csvFile" accept=".csv" style="display:none">
+    </div>
+
+    <div id="mainContent" style="display:none;">
+        
+        <div class="section">
+            <h2>1. Elenco Frequenza Piatti (Tutti)</h2>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table id="freqTable">
+                    <thead>
+                        <tr><th>Piatto</th><th>Volte</th><th>Ultima volta visto</th></tr>
+                    </thead>
+                    <tbody id="freqBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. Distribuzione per Tipologia</h2>
+            <div class="chart-grid">
+                <div><h3>Top Primi Piatti</h3><canvas id="chartPrimi"></canvas></div>
+                <div><h3>Secondi & Zuppe più cucinati</h3><canvas id="chartSecondi"></canvas></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. Linea Temporale delle Ricorrenze</h2>
+            <p>Visualizza quando i piatti si ripetono. I punti sulla stessa linea orizzontale indicano lo stesso piatto nel tempo.</p>
+            <div style="height: 500px;">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let charts = {};
+
+document.getElementById('csvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => processData(e.target.result);
+    reader.readAsText(file);
+});
+
+function processData(csvText) {
+    const lines = csvText.trim().split(/\r?\n/);
+    const globalFreq = {};
+    const catPrimi = {};
+    const catSecondi = {};
+    const timeline = [];
+    const lastSeen = {};
+
+    lines.slice(1).forEach(line => {
+        const col = line.split(',').map(c => c.trim());
+        if (col.length < 5) return;
+
+        const data = col[0];
+        // Indici colonne: 1,2,3 Primi | 4 Secondo | 5 Zuppa | 6,7 Insalate
+        const piatti = {
+            primi: [col[1], col[2], col[3]],
+            secondi: [col[4], col[5]],
+            insalate: [col[6], col[7]]
+        };
+
+        // Processa Primi
+        piatti.primi.forEach(p => {
+            if(p && p.length > 2) {
+                globalFreq[p] = (globalFreq[p] || 0) + 1;
+                catPrimi[p] = (catPrimi[p] || 0) + 1;
+                timeline.push({ x: data, y: p });
+                lastSeen[p] = data;
+            }
+        });
+
+        // Processa Secondi/Zuppe
+        piatti.secondi.forEach(p => {
+            if(p && p.length > 2) {
+                globalFreq[p] = (globalFreq[p] || 0) + 1;
+                catSecondi[p] = (catSecondi[p] || 0) + 1;
+                timeline.push({ x: data, y: p });
+                lastSeen[p] = data;
+            }
+        });
+    });
+
+    displayTable(globalFreq, lastSeen);
+    renderCharts(catPrimi, catSecondi, timeline);
+    document.getElementById('mainContent').style.display = 'block';
+}
+
+function displayTable(freq, lastSeen) {
+    const body = document.getElementById('freqBody');
+    body.innerHTML = '';
+    Object.entries(freq)
+        .sort((a,b) => b[1] - a[1])
+        .forEach(([piatto, conteggio]) => {
+            body.innerHTML += `<tr><td>${piatto}</td><td><strong>${conteggio}</strong></td><td>${lastSeen[piatto]}</td></tr>`;
+        });
+}
+
+function renderCharts(primi, secondi, timeline) {
+    Object.values(charts).forEach(c => c.destroy());
+
+    const sortedPrimi = Object.entries(primi).sort((a,b) => b[1] - a[1]).slice(0, 8);
+    const sortedSecondi = Object.entries(secondi).sort((a,b) => b[1] - a[1]).slice(0, 8);
+
+    charts.primi = new Chart(document.getElementById('chartPrimi'), {
+        type: 'bar',
+        data: {
+            labels: sortedPrimi.map(i => i[0]),
+            datasets: [{ label: 'Frequenza', data: sortedPrimi.map(i => i[1]), backgroundColor: '#3498db' }]
+        },
+        options: { indexAxis: 'y' }
+    });
+
+    charts.secondi = new Chart(document.getElementById('chartSecondi'), {
+        type: 'bar',
+        data: {
+            labels: sortedSecondi.map(i => i[0]),
+            datasets: [{ label: 'Frequenza', data: sortedSecondi.map(i => i[1]), backgroundColor: '#2ecc71' }]
+        },
+        options: { indexAxis: 'y' }
+    });
+
+    const uniquePiatti = [...new Set(timeline.map(d => d.y))];
+    charts.timeline = new Chart(document.getElementById('timelineChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Presenza in menu',
+                data: timeline.map(d => ({ x: d.x, y: uniquePiatti.indexOf(d.y) })),
+                backgroundColor: '#e74c3c'
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                x: { type: 'category', labels: [...new Set(timeline.map(d => d.x))] },
+                y: { ticks: { callback: v => uniquePiatti[v] } }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
