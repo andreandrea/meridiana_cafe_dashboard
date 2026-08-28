@@ -79,6 +79,7 @@ export function formatBookingAlert(booking: {
 }): string {
   const date = new Date(booking.start_at)
   const formatted = date.toLocaleString('it-IT', {
+    timeZone: 'Europe/Rome',
     weekday: 'long',
     day: 'numeric',
     month: 'long',

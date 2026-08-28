@@ -1,3 +1,5 @@
+import { utcToRomeParts } from './timezone'
+
 export type BookingSettings = {
   min_advance_minutes: number
   form_open_time: string // 'HH:MM:SS' o 'HH:MM'
@@ -31,13 +33,19 @@ function parseTimeToMinutes(time: string): number {
  * per lo slot `slotStart`. Applica due regole indipendenti:
  * 1) il form è "chiuso" prima di form_open_time ogni giorno;
  * 2) serve un anticipo minimo di min_advance_minutes rispetto allo slot.
+ *
+ * Tutti gli orari (now incluso) vengono letti nel fuso orario del
+ * locale (Europe/Rome), non in quello del server: su Vercel il
+ * runtime gira in UTC, quindi confrontare .getHours() direttamente
+ * produrrebbe uno sfasamento di 1-2 ore rispetto all'orario italiano.
  */
 export function isWithinBookingWindow(
   now: Date,
   slotStart: Date,
   settings: BookingSettings
 ): { allowed: boolean; reason?: string } {
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowRome = utcToRomeParts(now)
+  const nowMinutes = nowRome.hour * 60 + nowRome.minute
   const formOpenMinutes = parseTimeToMinutes(settings.form_open_time)
 
   if (nowMinutes < formOpenMinutes) {
@@ -76,9 +84,11 @@ export function isSlotWithinOpeningHours(
   openingHours: OpeningHour[],
   specialClosures: SpecialClosure[]
 ): { allowed: boolean; reason?: string } {
-  const dayOfWeek = slotStart.getDay()
-  const slotStartMinutes = slotStart.getHours() * 60 + slotStart.getMinutes()
-  const slotEndMinutes = slotEnd.getHours() * 60 + slotEnd.getMinutes()
+  const startRome = utcToRomeParts(slotStart)
+  const endRome = utcToRomeParts(slotEnd)
+  const dayOfWeek = startRome.weekday
+  const slotStartMinutes = startRome.hour * 60 + startRome.minute
+  const slotEndMinutes = endRome.hour * 60 + endRome.minute
 
   const shiftsForDay = openingHours.filter(
     (h) => h.day_of_week === dayOfWeek && !h.is_closed
@@ -97,7 +107,7 @@ export function isSlotWithinOpeningHours(
     }
   }
 
-  const dateStr = slotStart.toISOString().slice(0, 10)
+  const dateStr = startRome.dateStr
   const isClosedByException = specialClosures.some((closure) => {
     if (dateStr < closure.date_start || dateStr > closure.date_end) {
       return false

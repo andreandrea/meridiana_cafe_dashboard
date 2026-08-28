@@ -55,6 +55,7 @@ export default async function PrenotaConfermaPage({
   }
 
   const formattedDate = new Date(booking.start_at).toLocaleString("it-IT", {
+    timeZone: "Europe/Rome",
     weekday: "long",
     day: "numeric",
     month: "long",

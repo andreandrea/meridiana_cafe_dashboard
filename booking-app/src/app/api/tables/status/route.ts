@@ -5,6 +5,7 @@ import {
   isSlotWithinOpeningHours,
   isWithinBookingWindow,
 } from "@/lib/booking-rules";
+import { romeWallTimeToUtc } from "@/lib/timezone";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const startAt = new Date(`${date}T${time}:00`);
+  const startAt = romeWallTimeToUtc(date, time);
   if (Number.isNaN(startAt.getTime())) {
     return NextResponse.json({ error: "Data/ora non valida" }, { status: 400 });
   }

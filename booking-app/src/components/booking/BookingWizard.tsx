@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { romeWallTimeToUtc, utcToRomeParts } from "@/lib/timezone";
 
 type TableStatus = {
   id: string;
@@ -27,8 +28,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 function todayISO() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return utcToRomeParts(new Date()).dateStr;
 }
 
 export function BookingWizard() {
@@ -89,7 +89,7 @@ export function BookingWizard() {
     setLoading(true);
 
     try {
-      const startAt = new Date(`${date}T${time}:00`).toISOString();
+      const startAt = romeWallTimeToUtc(date, time).toISOString();
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

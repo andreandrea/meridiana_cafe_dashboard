@@ -40,6 +40,7 @@ export function BookingRequestCard({ booking }: { booking: BookingRequest }) {
   const [isPending, startTransition] = useTransition();
 
   const formattedDate = new Date(booking.start_at).toLocaleString("it-IT", {
+    timeZone: "Europe/Rome",
     weekday: "short",
     day: "numeric",
     month: "short",
