@@ -1,4 +1,4 @@
-import { utcToRomeParts } from './timezone'
+import { romeWallTimeToUtc, utcToRomeParts } from './timezone'
 
 export type BookingSettings = {
   min_advance_minutes: number
@@ -131,4 +131,34 @@ export function computeSlotEnd(
   settings: Pick<BookingSettings, 'slot_duration_minutes'>
 ): Date {
   return new Date(slotStart.getTime() + settings.slot_duration_minutes * 60000)
+}
+
+/**
+ * Genera gli orari (HH:MM) prenotabili all'interno di un turno per una
+ * data specifica, a intervalli fissi, già filtrati per le regole di
+ * prenotazione (anticipo minimo, apertura form, anticipo massimo) e
+ * per garantire che l'intero slot (durata inclusa) rientri nel turno.
+ */
+export function generateShiftSlots(
+  dateStr: string,
+  shift: Pick<OpeningHour, 'open_time' | 'close_time'>,
+  settings: BookingSettings,
+  now: Date,
+  intervalMinutes = 30
+): string[] {
+  const openMinutes = parseTimeToMinutes(shift.open_time)
+  const closeMinutes = parseTimeToMinutes(shift.close_time)
+  const lastStartMinutes = closeMinutes - settings.slot_duration_minutes
+
+  const slots: string[] = []
+  for (let t = openMinutes; t <= lastStartMinutes; t += intervalMinutes) {
+    const hh = String(Math.floor(t / 60)).padStart(2, '0')
+    const mm = String(t % 60).padStart(2, '0')
+    const timeStr = `${hh}:${mm}`
+    const candidate = romeWallTimeToUtc(dateStr, timeStr)
+    if (isWithinBookingWindow(now, candidate, settings).allowed) {
+      slots.push(timeStr)
+    }
+  }
+  return slots
 }

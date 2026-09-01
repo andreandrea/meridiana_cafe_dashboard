@@ -1,23 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { romeWallTimeToUtc, utcToRomeParts } from "@/lib/timezone";
-
-type TableStatus = {
-  id: string;
-  label: string;
-  seats_min: number;
-  seats_max: number;
-  is_occupied: boolean;
-  is_compatible: boolean;
-};
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { RoomMap, type RoomMapTable } from "@/components/room-map/RoomMap";
+import {
+  addDaysToDateStr,
+  romeWallTimeToUtc,
+  utcToRomeParts,
+  weekdayOfDateStr,
+} from "@/lib/timezone";
+import {
+  generateShiftSlots,
+  type BookingSettings,
+  type OpeningHour,
+} from "@/lib/booking-rules";
 
 type MenuItem = { id: string; category: string; name: string };
+
+type OpeningData = {
+  settings: BookingSettings;
+  hours: OpeningHour[];
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   primo: "Primi Piatti",
@@ -31,15 +44,22 @@ function todayISO() {
   return utcToRomeParts(new Date()).dateStr;
 }
 
+function shiftLabel(label: string) {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function BookingWizard() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const [date, setDate] = useState(todayISO());
-  const [time, setTime] = useState("");
   const [partySize, setPartySize] = useState(2);
+  const [time, setTime] = useState<string | null>(null);
 
-  const [tables, setTables] = useState<TableStatus[]>([]);
+  const [openingData, setOpeningData] = useState<OpeningData | null>(null);
+  const [loadingOpening, setLoadingOpening] = useState(true);
+
+  const [tables, setTables] = useState<RoomMapTable[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 
@@ -49,8 +69,50 @@ export function BookingWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleFindTables(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    fetch("/api/opening-hours")
+      .then((r) => r.json())
+      .then((data) => {
+        setOpeningData({ settings: data.settings, hours: data.hours ?? [] });
+        setLoadingOpening(false);
+      })
+      .catch(() => setLoadingOpening(false));
+  }, []);
+
+  const maxDate = openingData
+    ? addDaysToDateStr(todayISO(), openingData.settings.max_advance_days)
+    : undefined;
+
+  const shiftsForDate = useMemo(() => {
+    if (!openingData) return [];
+    const weekday = weekdayOfDateStr(date);
+    return openingData.hours.filter(
+      (h) => h.day_of_week === weekday && !h.is_closed
+    );
+  }, [openingData, date]);
+
+  const slotsByShift = useMemo(() => {
+    if (!openingData) return {} as Record<string, string[]>;
+    const now = new Date();
+    const map: Record<string, string[]> = {};
+    for (const shift of shiftsForDate) {
+      map[shift.shift_label] = generateShiftSlots(
+        date,
+        shift,
+        openingData.settings,
+        now
+      );
+    }
+    return map;
+  }, [shiftsForDate, openingData, date]);
+
+  function handleSelectDate(value: string) {
+    setDate(value);
+    setTime(null);
+  }
+
+  async function handleFindTables() {
+    if (!time) return;
     setError(null);
     setSelectedTableId(null);
     setLoading(true);
@@ -84,7 +146,7 @@ export function BookingWizard() {
 
   async function handleSubmitBooking(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedTableId) return;
+    if (!selectedTableId || !time) return;
     setError(null);
     setLoading(true);
 
@@ -129,46 +191,96 @@ export function BookingWizard() {
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
       {step === 1 && (
         <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={handleFindTables} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="date">Data</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  min={todayISO()}
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="time">Ora</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="party_size">Numero di persone</Label>
-                <Input
-                  id="party_size"
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={partySize}
-                  onChange={(e) => setPartySize(Number(e.target.value))}
-                  required
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" disabled={loading}>
-                {loading ? "Verifica disponibilità..." : "Cerca tavolo"}
-              </Button>
-            </form>
+          <CardContent className="flex flex-col gap-4 pt-6">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="date">Data</Label>
+              <Input
+                id="date"
+                type="date"
+                min={todayISO()}
+                max={maxDate}
+                value={date}
+                onChange={(e) => handleSelectDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="party_size">Numero di persone</Label>
+              <Input
+                id="party_size"
+                type="number"
+                min={1}
+                max={20}
+                value={partySize}
+                onChange={(e) => setPartySize(Number(e.target.value))}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label>Turno e orario</Label>
+              {loadingOpening && (
+                <p className="text-sm text-muted-foreground">
+                  Caricamento orari...
+                </p>
+              )}
+              {!loadingOpening && shiftsForDate.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Il locale è chiuso in questa data.
+                </p>
+              )}
+              {!loadingOpening && shiftsForDate.length > 0 && (
+                <Accordion type="single" collapsible>
+                  {shiftsForDate.map((shift) => {
+                    const slots = slotsByShift[shift.shift_label] ?? [];
+                    return (
+                      <AccordionItem
+                        key={shift.shift_label}
+                        value={shift.shift_label}
+                      >
+                        <AccordionTrigger>
+                          {shiftLabel(shift.shift_label)} · {shift.open_time.slice(0, 5)}–
+                          {shift.close_time.slice(0, 5)}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {slots.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              Nessun orario disponibile per questo turno.
+                            </p>
+                          ) : (
+                            <div className="grid grid-cols-4 gap-2">
+                              {slots.map((slot) => (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => setTime(slot)}
+                                  className={`rounded-md border px-2 py-1.5 text-sm transition-colors ${
+                                    time === slot
+                                      ? "border-primary bg-primary/10 font-semibold"
+                                      : "hover:bg-accent"
+                                  }`}
+                                >
+                                  {slot}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              )}
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button
+              type="button"
+              disabled={loading || !time}
+              onClick={handleFindTables}
+            >
+              {loading ? "Verifica disponibilità..." : "Cerca tavolo"}
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -198,44 +310,28 @@ export function BookingWizard() {
           )}
 
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">Scegli un tavolo</p>
-            {tables.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nessun tavolo configurato.
-              </p>
-            )}
-            {tables.map((t) => {
-              const disabled = t.is_occupied || !t.is_compatible;
-              const selected = selectedTableId === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => setSelectedTableId(t.id)}
-                  className={`flex items-center justify-between rounded-md border px-4 py-3 text-left text-sm transition-colors ${
-                    selected
-                      ? "border-primary bg-primary/10"
-                      : disabled
-                        ? "cursor-not-allowed opacity-40"
-                        : "hover:bg-accent"
-                  }`}
-                >
-                  <span>
-                    <strong>{t.label}</strong> · {t.seats_min}-{t.seats_max} persone
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {t.is_occupied
-                      ? "Occupato"
-                      : !t.is_compatible
-                        ? "Non adatto"
-                        : selected
-                          ? "Selezionato"
-                          : "Libero"}
-                  </span>
-                </button>
-              );
-            })}
+            <p className="text-sm font-medium">
+              Scegli un tavolo dalla mappa della sala
+            </p>
+            <RoomMap
+              tables={tables}
+              selectedTableId={selectedTableId}
+              onSelectTable={setSelectedTableId}
+            />
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-3 w-3 rounded-full bg-white/85" /> Libero
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-3 w-3 rounded-full bg-[var(--brand-gold)]" /> Selezionato
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-3 w-3 rounded-full bg-gray-500" /> Occupato
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-3 w-3 rounded-full bg-white/20" /> Non adatto al gruppo
+              </span>
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

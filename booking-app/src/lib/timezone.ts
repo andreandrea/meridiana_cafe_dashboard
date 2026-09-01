@@ -31,6 +31,22 @@ export function romeWallTimeToUtc(dateStr: string, timeStr: string): Date {
   return new Date(naiveUtc.getTime() - offsetMinutes * 60000);
 }
 
+/**
+ * Giorno della settimana (0=domenica) di una data YYYY-MM-DD, senza
+ * ambiguità di fuso: usa mezzogiorno UTC come ancora, sempre
+ * all'interno dello stesso giorno di calendario a Roma.
+ */
+export function weekdayOfDateStr(dateStr: string): number {
+  return new Date(`${dateStr}T12:00:00Z`).getUTCDay()
+}
+
+/** Somma (o sottrae) giorni di calendario a una data YYYY-MM-DD. */
+export function addDaysToDateStr(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 export type RomeDateParts = {
   year: number;
   month: number;
