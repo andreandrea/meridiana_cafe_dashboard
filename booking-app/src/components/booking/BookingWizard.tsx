@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,41 @@ function shiftLabel(label: string) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+const PRANZO_SHIFT_FILTER = (h: OpeningHour) =>
+  !h.is_closed && h.shift_label.toLowerCase().includes("pranzo");
+
+/**
+ * Cerca, a partire da startDate, il primo giorno con almeno uno slot
+ * pranzo prenotabile — usato per mostrare subito la mappa sala anche
+ * se oggi è già passato l'orario utile (es. pomeriggio/sera).
+ */
+function findFirstAvailableSlot(
+  openingData: OpeningData,
+  startDate: string,
+  maxDaysToCheck: number
+): { date: string; time: string } | null {
+  let candidateDate = startDate;
+  for (let i = 0; i <= maxDaysToCheck; i++) {
+    const weekday = weekdayOfDateStr(candidateDate);
+    const shifts = openingData.hours.filter(
+      (h) => h.day_of_week === weekday && PRANZO_SHIFT_FILTER(h)
+    );
+    for (const shift of shifts) {
+      const slots = generateShiftSlots(
+        candidateDate,
+        shift,
+        openingData.settings,
+        new Date()
+      );
+      if (slots.length > 0) {
+        return { date: candidateDate, time: slots[0] };
+      }
+    }
+    candidateDate = addDaysToDateStr(candidateDate, 1);
+  }
+  return null;
+}
+
 export function BookingWizard() {
   const router = useRouter();
 
@@ -69,6 +104,8 @@ export function BookingWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasAutoSelected = useRef(false);
+
   useEffect(() => {
     fetch("/api/opening-hours")
       .then((r) => r.json())
@@ -78,6 +115,25 @@ export function BookingWizard() {
       })
       .catch(() => setLoadingOpening(false));
   }, []);
+
+  // Appena caricati gli orari, seleziona subito il primo giorno/orario
+  // pranzo disponibile, così la mappa sala è visibile fin da subito
+  // ("Prenota un tavolo" deve portare alla sala, non a un form vuoto).
+  // Solo al primo caricamento: dopo, la scelta resta manuale.
+  useEffect(() => {
+    if (!openingData || hasAutoSelected.current) return;
+    hasAutoSelected.current = true;
+
+    function applyDefaultSlot() {
+      const found = findFirstAvailableSlot(openingData!, todayISO(), 14);
+      if (found) {
+        setDate(found.date);
+        setTime(found.time);
+      }
+    }
+
+    applyDefaultSlot();
+  }, [openingData]);
 
   // Ogni volta che data/ora/persone cambiano, ricarica automaticamente
   // la disponibilità della mappa — nessun pulsante "Cerca" separato.
@@ -132,13 +188,10 @@ export function BookingWizard() {
   const shiftsForDate = useMemo(() => {
     if (!openingData) return [];
     const weekday = weekdayOfDateStr(date);
+    // Le prenotazioni online valgono solo per il turno pranzo per ora:
+    // la cena resta gestita come oggi (telefono/WhatsApp).
     return openingData.hours.filter(
-      (h) =>
-        h.day_of_week === weekday &&
-        !h.is_closed &&
-        // Le prenotazioni online valgono solo per il turno pranzo per
-        // ora: la cena resta gestita come oggi (telefono/WhatsApp).
-        h.shift_label.toLowerCase().includes("pranzo")
+      (h) => h.day_of_week === weekday && PRANZO_SHIFT_FILTER(h)
     );
   }, [openingData, date]);
 
