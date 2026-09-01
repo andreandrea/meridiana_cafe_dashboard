@@ -50,7 +50,6 @@ function shiftLabel(label: string) {
 
 export function BookingWizard() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const [date, setDate] = useState(todayISO());
   const [partySize, setPartySize] = useState(2);
@@ -62,11 +61,12 @@ export function BookingWizard() {
   const [tables, setTables] = useState<RoomMapTable[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [loadingTables, setLoadingTables] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,6 +78,52 @@ export function BookingWizard() {
       })
       .catch(() => setLoadingOpening(false));
   }, []);
+
+  // Ogni volta che data/ora/persone cambiano, ricarica automaticamente
+  // la disponibilità della mappa — nessun pulsante "Cerca" separato.
+  useEffect(() => {
+    if (!time) return;
+
+    let cancelled = false;
+
+    async function loadAvailability() {
+      setError(null);
+      setSelectedTableId(null);
+      setLoadingTables(true);
+
+      try {
+        const [statusRes, menuRes] = await Promise.all([
+          fetch(
+            `/api/tables/status?date=${date}&time=${time}&party_size=${partySize}`
+          ),
+          fetch(`/api/menu/daily?date=${date}`),
+        ]);
+        if (cancelled) return;
+
+        const statusData = await statusRes.json();
+        if (!statusRes.ok) {
+          setError(statusData.error ?? "Errore nel controllo disponibilità");
+          setTables([]);
+          return;
+        }
+
+        const menuData = await menuRes.json();
+        if (cancelled) return;
+        setTables(statusData.tables);
+        setMenuItems(menuData.items ?? []);
+      } catch {
+        if (!cancelled) setError("Errore di rete. Riprova.");
+      } finally {
+        if (!cancelled) setLoadingTables(false);
+      }
+    }
+
+    loadAvailability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [date, time, partySize]);
 
   const maxDate = openingData
     ? addDaysToDateStr(todayISO(), openingData.settings.max_advance_days)
@@ -111,44 +157,16 @@ export function BookingWizard() {
     setTime(null);
   }
 
-  async function handleFindTables() {
-    if (!time) return;
-    setError(null);
+  function handleChangePartySize(value: number) {
+    setPartySize(value);
     setSelectedTableId(null);
-    setLoading(true);
-
-    try {
-      const [statusRes, menuRes] = await Promise.all([
-        fetch(
-          `/api/tables/status?date=${date}&time=${time}&party_size=${partySize}`
-        ),
-        fetch(`/api/menu/daily?date=${date}`),
-      ]);
-
-      const statusData = await statusRes.json();
-      if (!statusRes.ok) {
-        setError(statusData.error ?? "Errore nel controllo disponibilità");
-        setLoading(false);
-        return;
-      }
-
-      const menuData = await menuRes.json();
-
-      setTables(statusData.tables);
-      setMenuItems(menuData.items ?? []);
-      setStep(2);
-    } catch {
-      setError("Errore di rete. Riprova.");
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function handleSubmitBooking(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTableId || !time) return;
     setError(null);
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const startAt = romeWallTimeToUtc(date, time).toISOString();
@@ -169,16 +187,16 @@ export function BookingWizard() {
       if (!res.ok) {
         setError(data.error ?? "Errore nell'invio della richiesta");
         if (res.status === 409) {
-          setStep(2);
+          setSelectedTableId(null);
         }
-        setLoading(false);
+        setSubmitting(false);
         return;
       }
 
       router.push(`/prenota/conferma?id=${data.booking.id}`);
     } catch {
       setError("Errore di rete. Riprova.");
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
@@ -187,11 +205,13 @@ export function BookingWizard() {
     return acc;
   }, {});
 
+  const selectedTable = tables.find((t) => t.id === selectedTableId) ?? null;
+
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
-      {step === 1 && (
-        <Card>
-          <CardContent className="flex flex-col gap-4 pt-6">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-col gap-4 pt-6">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
               <Label htmlFor="date">Data</Label>
               <Input
@@ -205,87 +225,75 @@ export function BookingWizard() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="party_size">Numero di persone</Label>
+              <Label htmlFor="party_size">Persone</Label>
               <Input
                 id="party_size"
                 type="number"
                 min={1}
                 max={20}
                 value={partySize}
-                onChange={(e) => setPartySize(Number(e.target.value))}
+                onChange={(e) => handleChangePartySize(Number(e.target.value))}
                 required
               />
             </div>
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>Turno e orario</Label>
-              {loadingOpening && (
-                <p className="text-sm text-muted-foreground">
-                  Caricamento orari...
-                </p>
-              )}
-              {!loadingOpening && shiftsForDate.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Il locale è chiuso in questa data.
-                </p>
-              )}
-              {!loadingOpening && shiftsForDate.length > 0 && (
-                <Accordion type="single" collapsible>
-                  {shiftsForDate.map((shift) => {
-                    const slots = slotsByShift[shift.shift_label] ?? [];
-                    return (
-                      <AccordionItem
-                        key={shift.shift_label}
-                        value={shift.shift_label}
-                      >
-                        <AccordionTrigger>
-                          {shiftLabel(shift.shift_label)} · {shift.open_time.slice(0, 5)}–
-                          {shift.close_time.slice(0, 5)}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          {slots.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                              Nessun orario disponibile per questo turno.
-                            </p>
-                          ) : (
-                            <div className="grid grid-cols-4 gap-2">
-                              {slots.map((slot) => (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => setTime(slot)}
-                                  className={`rounded-md border px-2 py-1.5 text-sm transition-colors ${
-                                    time === slot
-                                      ? "border-primary bg-primary/10 font-semibold"
-                                      : "hover:bg-accent"
-                                  }`}
-                                >
-                                  {slot}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
-              )}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label>Turno e orario</Label>
+            {loadingOpening && (
+              <p className="text-sm text-muted-foreground">
+                Caricamento orari...
+              </p>
+            )}
+            {!loadingOpening && shiftsForDate.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Il locale è chiuso in questa data.
+              </p>
+            )}
+            {!loadingOpening && shiftsForDate.length > 0 && (
+              <Accordion type="single" collapsible defaultValue={shiftsForDate[0]?.shift_label}>
+                {shiftsForDate.map((shift) => {
+                  const slots = slotsByShift[shift.shift_label] ?? [];
+                  return (
+                    <AccordionItem key={shift.shift_label} value={shift.shift_label}>
+                      <AccordionTrigger>
+                        {shiftLabel(shift.shift_label)} · {shift.open_time.slice(0, 5)}–
+                        {shift.close_time.slice(0, 5)}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {slots.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Nessun orario disponibile per questo turno.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-2">
+                            {slots.map((slot) => (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => setTime(slot)}
+                                className={`rounded-md border px-2 py-1.5 text-sm transition-colors ${
+                                  time === slot
+                                    ? "border-primary bg-primary/10 font-semibold"
+                                    : "hover:bg-accent"
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button
-              type="button"
-              disabled={loading || !time}
-              onClick={handleFindTables}
-            >
-              {loading ? "Verifica disponibilità..." : "Cerca tavolo"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {step === 2 && (
+      {time && (
         <div className="flex flex-col gap-4">
           {Object.keys(groupedMenu).length > 0 && (
             <Card>
@@ -311,13 +319,19 @@ export function BookingWizard() {
 
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">
-              Scegli un tavolo dalla mappa della sala
+              Clicca un tavolo libero sulla mappa per prenotarlo
             </p>
-            <RoomMap
-              tables={tables}
-              selectedTableId={selectedTableId}
-              onSelectTable={setSelectedTableId}
-            />
+            {loadingTables ? (
+              <p className="text-sm text-muted-foreground">
+                Verifica disponibilità...
+              </p>
+            ) : (
+              <RoomMap
+                tables={tables}
+                selectedTableId={selectedTableId}
+                onSelectTable={setSelectedTableId}
+              />
+            )}
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="inline-block h-3 w-3 rounded-full bg-white/85" /> Libero
@@ -335,26 +349,16 @@ export function BookingWizard() {
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => setStep(1)}>
-              Indietro
-            </Button>
-            <Button
-              type="button"
-              disabled={!selectedTableId}
-              onClick={() => setStep(3)}
-              className="flex-1"
-            >
-              Continua
-            </Button>
-          </div>
         </div>
       )}
 
-      {step === 3 && (
+      {selectedTable && (
         <Card>
           <CardContent className="pt-6">
+            <p className="mb-4 text-sm font-medium">
+              Stai prenotando <strong>{selectedTable.label}</strong> per {partySize}{" "}
+              persone, {date} alle {time}
+            </p>
             <form onSubmit={handleSubmitBooking} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="name">Nome e cognome</Label>
@@ -378,18 +382,9 @@ export function BookingWizard() {
                 />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(2)}
-                >
-                  Indietro
-                </Button>
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? "Invio in corso..." : "Invia richiesta"}
-                </Button>
-              </div>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Invio in corso..." : "Invia richiesta"}
+              </Button>
             </form>
           </CardContent>
         </Card>
