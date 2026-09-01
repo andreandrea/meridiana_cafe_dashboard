@@ -133,7 +133,12 @@ export function BookingWizard() {
     if (!openingData) return [];
     const weekday = weekdayOfDateStr(date);
     return openingData.hours.filter(
-      (h) => h.day_of_week === weekday && !h.is_closed
+      (h) =>
+        h.day_of_week === weekday &&
+        !h.is_closed &&
+        // Le prenotazioni online valgono solo per il turno pranzo per
+        // ora: la cena resta gestita come oggi (telefono/WhatsApp).
+        h.shift_label.toLowerCase().includes("pranzo")
     );
   }, [openingData, date]);
 
