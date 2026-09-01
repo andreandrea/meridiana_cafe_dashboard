@@ -1,14 +1,16 @@
+import Image from "next/image";
+import Link from "next/link";
 import { BookingWizard } from "@/components/booking/BookingWizard";
 
 export default function PrenotaPage() {
   return (
-    <div className="brand-gradient-bg flex flex-1 items-center justify-center px-6 py-16">
+    <div className="brand-gradient-bg flex flex-1 flex-col items-center px-6 py-10">
+      <Link href="/" className="mb-6">
+        <Image src="/logo.svg" alt="Meridiana Cafè" width={140} height={40} className="h-9 w-auto" priority />
+      </Link>
       <div className="w-full max-w-lg">
         <div className="mb-6 text-center text-white">
-          <p className="text-sm font-bold uppercase tracking-[3px] opacity-90">
-            Meridiana Cafè
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">Prenota un tavolo</h1>
+          <h1 className="text-2xl font-bold">Prenota un tavolo</h1>
         </div>
         <BookingWizard />
       </div>

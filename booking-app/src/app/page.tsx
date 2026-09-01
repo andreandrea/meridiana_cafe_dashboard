@@ -1,7 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { PlaceholderImage } from "@/components/marketing/PlaceholderImage";
 import { utcToRomeParts } from "@/lib/timezone";
+
+const ADDRESS = "Via Garibaldi 24, 41019 Soliera (MO)";
+const WHATSAPP_LINK = "https://wa.me/393517235371";
 
 export const dynamic = "force-dynamic";
 
@@ -64,9 +68,7 @@ export default async function Home() {
     <div className="flex flex-1 flex-col">
       {/* Header */}
       <header className="brand-gradient-bg flex items-center justify-between px-6 py-4 text-white sm:px-12">
-        <span className="text-sm font-bold uppercase tracking-[3px]">
-          Meridiana Cafè
-        </span>
+        <Image src="/logo.svg" alt="Meridiana Cafè" width={140} height={40} className="h-8 w-auto" priority />
         <Link
           href="/prenota"
           className="inline-flex h-9 items-center justify-center rounded-full bg-[var(--brand-gold)] px-5 text-xs font-bold tracking-wide text-[#333] transition-opacity hover:opacity-90"
@@ -84,8 +86,8 @@ export default async function Home() {
           Meridiana Cafè
         </h1>
         <p className="mt-4 max-w-md text-sm opacity-90 sm:text-base">
-          Un tavolo con vista sul mare, un menu che cambia ogni giorno.
-          Prenota il pranzo direttamente online.
+          Il tuo bar e ristorante a Soliera: un menu che cambia ogni giorno,
+          preparato con cura. Prenota il pranzo direttamente online.
         </p>
         <Link
           href="/prenota"
@@ -107,7 +109,7 @@ export default async function Home() {
             Chi siamo
           </p>
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-            Un angolo di Mediterraneo
+            Un punto di riferimento a Soliera
           </h2>
           <p className="mt-4 text-sm text-muted-foreground sm:text-base">
             Meridiana Cafè nasce dalla passione per gli ingredienti freschi e
@@ -166,6 +168,15 @@ export default async function Home() {
             Dove e quando
           </p>
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Orari</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{ADDRESS}</p>
+          <a
+            href={WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block text-sm font-medium text-[var(--brand-blue)] underline underline-offset-2"
+          >
+            Scrivici su WhatsApp
+          </a>
           <dl className="mt-4 flex flex-col gap-1 text-sm">
             {DAY_LABELS.map((label, day) => {
               const shifts = hoursByDay.get(day);
@@ -196,11 +207,10 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="brand-gradient-bg mt-auto flex flex-col items-center gap-2 px-6 py-10 text-center text-white">
-        <span className="text-sm font-bold uppercase tracking-[3px]">
-          Meridiana Cafè
-        </span>
+        <Image src="/logo.svg" alt="Meridiana Cafè" width={140} height={40} className="h-7 w-auto opacity-90" />
+        <p className="text-xs opacity-80">{ADDRESS}</p>
         <p className="text-xs opacity-70">
-          © {new Date().getFullYear()} Meridiana Cafè. Tutti i diritti riservati.
+          © {new Date().getFullYear()} Meridiana Cafè — The Sisters di Ascari Marika &amp; C. S.n.c. · P.IVA 02690590365
         </p>
       </footer>
     </div>
