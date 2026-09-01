@@ -23,6 +23,7 @@ import {
   generateShiftSlots,
   type BookingSettings,
   type OpeningHour,
+  type SpecialClosure,
 } from "@/lib/booking-rules";
 
 type MenuItem = { id: string; category: string; name: string };
@@ -30,6 +31,7 @@ type MenuItem = { id: string; category: string; name: string };
 type OpeningData = {
   settings: BookingSettings;
   hours: OpeningHour[];
+  closures: SpecialClosure[];
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -52,9 +54,33 @@ const PRANZO_SHIFT_FILTER = (h: OpeningHour) =>
   !h.is_closed && h.shift_label.toLowerCase().includes("pranzo");
 
 /**
+ * Primo orario pranzo prenotabile per UNA data specifica (tiene conto
+ * anche delle chiusure straordinarie), o null se quel giorno non ha
+ * nessuno slot valido.
+ */
+function firstSlotForDate(openingData: OpeningData, dateStr: string): string | null {
+  const weekday = weekdayOfDateStr(dateStr);
+  const shifts = openingData.hours.filter(
+    (h) => h.day_of_week === weekday && PRANZO_SHIFT_FILTER(h)
+  );
+  for (const shift of shifts) {
+    const slots = generateShiftSlots(
+      dateStr,
+      shift,
+      openingData.settings,
+      new Date(),
+      openingData.closures
+    );
+    if (slots.length > 0) return slots[0];
+  }
+  return null;
+}
+
+/**
  * Cerca, a partire da startDate, il primo giorno con almeno uno slot
  * pranzo prenotabile — usato per mostrare subito la mappa sala anche
- * se oggi è già passato l'orario utile (es. pomeriggio/sera).
+ * se oggi è già passato l'orario utile (es. pomeriggio/sera) o è un
+ * giorno di chiusura straordinaria.
  */
 function findFirstAvailableSlot(
   openingData: OpeningData,
@@ -63,21 +89,8 @@ function findFirstAvailableSlot(
 ): { date: string; time: string } | null {
   let candidateDate = startDate;
   for (let i = 0; i <= maxDaysToCheck; i++) {
-    const weekday = weekdayOfDateStr(candidateDate);
-    const shifts = openingData.hours.filter(
-      (h) => h.day_of_week === weekday && PRANZO_SHIFT_FILTER(h)
-    );
-    for (const shift of shifts) {
-      const slots = generateShiftSlots(
-        candidateDate,
-        shift,
-        openingData.settings,
-        new Date()
-      );
-      if (slots.length > 0) {
-        return { date: candidateDate, time: slots[0] };
-      }
-    }
+    const slot = firstSlotForDate(openingData, candidateDate);
+    if (slot) return { date: candidateDate, time: slot };
     candidateDate = addDaysToDateStr(candidateDate, 1);
   }
   return null;
@@ -110,7 +123,11 @@ export function BookingWizard() {
     fetch("/api/opening-hours")
       .then((r) => r.json())
       .then((data) => {
-        setOpeningData({ settings: data.settings, hours: data.hours ?? [] });
+        setOpeningData({
+          settings: data.settings,
+          hours: data.hours ?? [],
+          closures: data.closures ?? [],
+        });
         setLoadingOpening(false);
       })
       .catch(() => setLoadingOpening(false));
@@ -134,6 +151,13 @@ export function BookingWizard() {
 
     applyDefaultSlot();
   }, [openingData]);
+
+  // refreshToken forza un ricaricamento della mappa senza che
+  // data/ora/persone cambino — serve dopo un tentativo di
+  // prenotazione fallito (es. tavolo appena preso da qualcun altro),
+  // altrimenti la mappa resterebbe "vecchia" e mostrerebbe ancora
+  // libero un tavolo che non lo è più.
+  const [refreshToken, setRefreshToken] = useState(0);
 
   // Ogni volta che data/ora/persone cambiano, ricarica automaticamente
   // la disponibilità della mappa — nessun pulsante "Cerca" separato.
@@ -179,7 +203,7 @@ export function BookingWizard() {
     return () => {
       cancelled = true;
     };
-  }, [date, time, partySize]);
+  }, [date, time, partySize, refreshToken]);
 
   const maxDate = openingData
     ? addDaysToDateStr(todayISO(), openingData.settings.max_advance_days)
@@ -204,7 +228,8 @@ export function BookingWizard() {
         date,
         shift,
         openingData.settings,
-        now
+        now,
+        openingData.closures
       );
     }
     return map;
@@ -212,7 +237,10 @@ export function BookingWizard() {
 
   function handleSelectDate(value: string) {
     setDate(value);
-    setTime(null);
+    // Riseleziona subito il primo orario disponibile per il nuovo
+    // giorno scelto, così la mappa resta visibile invece di sparire
+    // finché non si clicca di nuovo un orario dall'accordion.
+    setTime(openingData ? firstSlotForDate(openingData, value) : null);
   }
 
   function handleChangePartySize(value: number) {
@@ -244,9 +272,18 @@ export function BookingWizard() {
 
       if (!res.ok) {
         setError(data.error ?? "Errore nell'invio della richiesta");
-        if (res.status === 409) {
-          setSelectedTableId(null);
+        // La richiesta può fallire perché nel frattempo il tavolo è
+        // stato preso da qualcun altro (409) oppure perché, mentre il
+        // cliente compilava il modulo, l'orario scelto è diventato
+        // troppo vicino (sotto l'anticipo minimo, 400). In entrambi i
+        // casi la mappa mostrata è ormai "vecchia": si deseleziona il
+        // tavolo, si sceglie un nuovo orario valido per la stessa data
+        // (se esiste) e si forza un ricaricamento della disponibilità.
+        setSelectedTableId(null);
+        if (openingData) {
+          setTime(firstSlotForDate(openingData, date));
         }
+        setRefreshToken((n) => n + 1);
         setSubmitting(false);
         return;
       }

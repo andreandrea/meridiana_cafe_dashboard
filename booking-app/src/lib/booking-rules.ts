@@ -75,6 +75,33 @@ export function isWithinBookingWindow(
 }
 
 /**
+ * Verifica se uno slot (in minuti-dalla-mezzanotte, ora di Roma) cade
+ * dentro una chiusura straordinaria per quella data. Estratta come
+ * funzione a sé per essere riusabile sia nel controllo server-side
+ * completo (isSlotWithinOpeningHours) sia nella generazione degli
+ * slot mostrati al cliente (generateShiftSlots) — altrimenti il
+ * cliente vedrebbe orari "disponibili" in giorni segnati come chiusi
+ * dall'admin, scoprendo l'errore solo all'invio della richiesta.
+ */
+export function isClosedByException(
+  dateStr: string,
+  slotStartMinutes: number,
+  slotEndMinutes: number,
+  specialClosures: SpecialClosure[]
+): boolean {
+  return specialClosures.some((closure) => {
+    if (dateStr < closure.date_start || dateStr > closure.date_end) {
+      return false
+    }
+    if (closure.all_day) return true
+    if (!closure.closed_from || !closure.closed_to) return false
+    const fromMinutes = parseTimeToMinutes(closure.closed_from)
+    const toMinutes = parseTimeToMinutes(closure.closed_to)
+    return slotStartMinutes < toMinutes && slotEndMinutes > fromMinutes
+  })
+}
+
+/**
  * Verifica che lo slot richiesto rientri negli orari di apertura
  * configurati (turno) e non cada in una chiusura straordinaria.
  */
@@ -107,19 +134,14 @@ export function isSlotWithinOpeningHours(
     }
   }
 
-  const dateStr = startRome.dateStr
-  const isClosedByException = specialClosures.some((closure) => {
-    if (dateStr < closure.date_start || dateStr > closure.date_end) {
-      return false
-    }
-    if (closure.all_day) return true
-    if (!closure.closed_from || !closure.closed_to) return false
-    const fromMinutes = parseTimeToMinutes(closure.closed_from)
-    const toMinutes = parseTimeToMinutes(closure.closed_to)
-    return slotStartMinutes < toMinutes && slotEndMinutes > fromMinutes
-  })
-
-  if (isClosedByException) {
+  if (
+    isClosedByException(
+      startRome.dateStr,
+      slotStartMinutes,
+      slotEndMinutes,
+      specialClosures
+    )
+  ) {
     return { allowed: false, reason: 'Il locale è chiuso in questa data.' }
   }
 
@@ -144,6 +166,7 @@ export function generateShiftSlots(
   shift: Pick<OpeningHour, 'open_time' | 'close_time'>,
   settings: BookingSettings,
   now: Date,
+  specialClosures: SpecialClosure[] = [],
   intervalMinutes = 30
 ): string[] {
   const openMinutes = parseTimeToMinutes(shift.open_time)
@@ -156,7 +179,11 @@ export function generateShiftSlots(
     const mm = String(t % 60).padStart(2, '0')
     const timeStr = `${hh}:${mm}`
     const candidate = romeWallTimeToUtc(dateStr, timeStr)
-    if (isWithinBookingWindow(now, candidate, settings).allowed) {
+    const slotEndMinutes = t + settings.slot_duration_minutes
+    if (
+      isWithinBookingWindow(now, candidate, settings).allowed &&
+      !isClosedByException(dateStr, t, slotEndMinutes, specialClosures)
+    ) {
       slots.push(timeStr)
     }
   }
